@@ -2,7 +2,7 @@
 /**
  * Plugin Name: API & Discovery
  * Description: Control WordPress APIs and discovery features for enhanced security and privacy
- * Version: 1.0.0
+ * Version: 1.0.1
  * Text Domain: api-discovery
  * Domain Path: /languages
  * License: GPL v2 or later
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define constants
-define( 'API_DISCOVERY_VERSION', '1.0.0' );
+define( 'API_DISCOVERY_VERSION', '1.0.1' );
 define( 'API_DISCOVERY_DIR', plugin_dir_path( __FILE__ ) );
 define( 'API_DISCOVERY_URL', plugin_dir_url( __FILE__ ) );
 
