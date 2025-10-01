@@ -45,6 +45,7 @@ class API_Discovery_Database {
 		$table_name      = $wpdb->prefix . 'api_discovery_settings';
 		$charset_collate = $wpdb->get_charset_collate();
 
+		// Use prepared statement for table creation (WordPress 6.2+)
 		$sql = $wpdb->prepare(
 			"CREATE TABLE IF NOT EXISTS %i (
 				id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -58,10 +59,17 @@ class API_Discovery_Database {
 		);
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-		$result = dbDelta( $sql );
+		dbDelta( $sql );
 
-		// Verify table creation
-		if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table_name ) ) !== $table_name ) {
+		// Check if table was created successfully
+		$table_exists = $wpdb->get_var(
+			$wpdb->prepare(
+				"SHOW TABLES LIKE %s",
+				$table_name
+			)
+		);
+
+		if ( $table_name !== $table_exists ) {
 			error_log( 'API Discovery: Failed to create database table' );
 			return;
 		}
@@ -80,9 +88,12 @@ class API_Discovery_Database {
 
 		$instance = new self();
 		foreach ( $defaults as $key => $value ) {
-			$existing = $instance->get_setting( $key, null );
-			if ( null === $existing ) {
-				$instance->save_setting( $key, $value );
+			$existing = $instance->get_setting( $key );
+			if ( false === $existing ) {
+				$result = $instance->save_setting( $key, $value );
+				if ( is_wp_error( $result ) ) {
+					error_log( 'API Discovery: Failed to set default for ' . $key . ' - ' . $result->get_error_message() );
+				}
 			}
 		}
 	}
@@ -94,7 +105,7 @@ class API_Discovery_Database {
 	 */
 	public static function deactivate() {
 		// Cleanup transients
-		delete_transient( 'api_discovery_all_settings' );
+		delete_transient( 'api_discovery_settings_cache' );
 	}
 
 	/**
@@ -106,7 +117,7 @@ class API_Discovery_Database {
 	 * @param mixed  $default Default value if not found
 	 * @return mixed Setting value or default
 	 */
-	public function get_setting( $key, $default = '0' ) {
+	public function get_setting( $key, $default = false ) {
 		global $wpdb;
 
 		$value = wp_cache_get( 'setting_' . $key, 'api_discovery' );
@@ -114,11 +125,13 @@ class API_Discovery_Database {
 			return maybe_unserialize( $value );
 		}
 
-		$result = $wpdb->get_var( $wpdb->prepare(
-			"SELECT setting_value FROM %i WHERE setting_key = %s",
-			$this->table_name,
-			$key
-		) );
+		$result = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT setting_value FROM %i WHERE setting_key = %s",
+				$this->table_name,
+				$key
+			)
+		);
 
 		if ( null === $result ) {
 			return $default;
@@ -141,13 +154,15 @@ class API_Discovery_Database {
 	public function save_setting( $key, $value ) {
 		global $wpdb;
 
-		$result = $wpdb->replace(
-			$this->table_name,
-			array(
-				'setting_key'   => $key,
-				'setting_value' => maybe_serialize( $value ),
-			),
-			array( '%s', '%s' )
+		// For WordPress 6.2+, we need to use prepared statement differently for replace
+		// Since replace() doesn't support %i, we use a direct query with prepare
+		$result = $wpdb->query(
+			$wpdb->prepare(
+				"REPLACE INTO %i (setting_key, setting_value) VALUES (%s, %s)",
+				$this->table_name,
+				$key,
+				maybe_serialize( $value )
+			)
 		);
 
 		if ( false === $result ) {
@@ -159,7 +174,7 @@ class API_Discovery_Database {
 		}
 
 		wp_cache_delete( 'setting_' . $key, 'api_discovery' );
-		delete_transient( 'api_discovery_all_settings' );
+		delete_transient( 'api_discovery_settings_cache' );
 
 		return true;
 	}
@@ -172,7 +187,7 @@ class API_Discovery_Database {
 	 * @return array Settings array
 	 */
 	public function get_all_settings() {
-		$cached = get_transient( 'api_discovery_all_settings' );
+		$cached = get_transient( 'api_discovery_settings_cache' );
 		if ( false !== $cached ) {
 			return $cached;
 		}
@@ -180,9 +195,17 @@ class API_Discovery_Database {
 		global $wpdb;
 
 		$results = $wpdb->get_results(
-			$wpdb->prepare( "SELECT setting_key, setting_value FROM %i", $this->table_name ),
+			$wpdb->prepare(
+				"SELECT setting_key, setting_value FROM %i",
+				$this->table_name
+			),
 			ARRAY_A
 		);
+
+		if ( null === $results ) {
+			error_log( 'API Discovery: Failed to retrieve settings - ' . $wpdb->last_error );
+			return array();
+		}
 
 		$settings = array();
 		if ( $results ) {
@@ -191,21 +214,7 @@ class API_Discovery_Database {
 			}
 		}
 
-		// Merge with defaults to handle new settings after plugin updates
-		$defaults = array(
-			'disable_rest_api_frontend' => '0',
-			'disable_xmlrpc'            => '0',
-			'disable_rsd'               => '0',
-			'disable_wlw'               => '0',
-			'disable_feed_links'        => '0',
-			'disable_feeds'             => '0',
-			'disable_feed_generator'    => '0',
-			'cleanup_on_uninstall'      => '0',
-		);
-
-		$settings = wp_parse_args( $settings, $defaults );
-
-		set_transient( 'api_discovery_all_settings', $settings, 12 * HOUR_IN_SECONDS );
+		set_transient( 'api_discovery_settings_cache', $settings, 12 * HOUR_IN_SECONDS );
 
 		return $settings;
 	}
@@ -218,9 +227,18 @@ class API_Discovery_Database {
 	public function cleanup() {
 		global $wpdb;
 
-		$wpdb->query( $wpdb->prepare( "DROP TABLE IF EXISTS %i", $this->table_name ) );
+		$result = $wpdb->query(
+			$wpdb->prepare(
+				"DROP TABLE IF EXISTS %i",
+				$this->table_name
+			)
+		);
 
-		delete_transient( 'api_discovery_all_settings' );
+		if ( false === $result ) {
+			error_log( 'API Discovery: Failed to drop table during cleanup - ' . $wpdb->last_error );
+		}
+
+		delete_transient( 'api_discovery_settings_cache' );
 		wp_cache_flush();
 	}
 }
