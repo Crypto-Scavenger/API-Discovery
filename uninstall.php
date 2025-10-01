@@ -16,17 +16,24 @@ global $wpdb;
 $table_name = $wpdb->prefix . 'api_discovery_settings';
 
 $cleanup = $wpdb->get_var( $wpdb->prepare(
-	"SELECT setting_value FROM `{$table_name}` WHERE setting_key = %s",
+	"SELECT setting_value FROM %i WHERE setting_key = %s",
+	$table_name,
 	'cleanup_on_uninstall'
 ) );
 
 if ( '1' === $cleanup ) {
-	$wpdb->query( "DROP TABLE IF EXISTS `{$table_name}`" );
+	$wpdb->query( $wpdb->prepare( "DROP TABLE IF EXISTS %i", $table_name ) );
 	
 	$wpdb->query( $wpdb->prepare(
 		"DELETE FROM {$wpdb->options} 
 		WHERE option_name LIKE %s",
 		$wpdb->esc_like( '_transient_api_discovery_' ) . '%'
+	) );
+	
+	$wpdb->query( $wpdb->prepare(
+		"DELETE FROM {$wpdb->options} 
+		WHERE option_name LIKE %s",
+		$wpdb->esc_like( '_transient_timeout_api_discovery_' ) . '%'
 	) );
 	
 	wp_cache_flush();
