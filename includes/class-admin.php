@@ -147,7 +147,7 @@ class API_Discovery_Admin {
 									type="checkbox" 
 									name="disable_rest_api_frontend" 
 									value="1"
-									<?php checked( '1', $settings['disable_rest_api_frontend'] ); ?>
+									<?php checked( '1', isset( $settings['disable_rest_api_frontend'] ) ? $settings['disable_rest_api_frontend'] : '0' ); ?>
 								/>
 								<?php esc_html_e( 'Removes REST API links from frontend. API still works, just removes discovery links.', 'api-discovery' ); ?>
 							</label>
@@ -164,7 +164,7 @@ class API_Discovery_Admin {
 									type="checkbox" 
 									name="disable_xmlrpc" 
 									value="1"
-									<?php checked( '1', $settings['disable_xmlrpc'] ); ?>
+									<?php checked( '1', isset( $settings['disable_xmlrpc'] ) ? $settings['disable_xmlrpc'] : '0' ); ?>
 								/>
 								<?php esc_html_e( 'Disables legacy XML-RPC protocol. Improves security by reducing attack vectors.', 'api-discovery' ); ?>
 							</label>
@@ -181,7 +181,7 @@ class API_Discovery_Admin {
 									type="checkbox" 
 									name="disable_rsd" 
 									value="1"
-									<?php checked( '1', $settings['disable_rsd'] ); ?>
+									<?php checked( '1', isset( $settings['disable_rsd'] ) ? $settings['disable_rsd'] : '0' ); ?>
 								/>
 								<?php esc_html_e( 'Removes RSD links for deprecated blog clients.', 'api-discovery' ); ?>
 							</label>
@@ -198,7 +198,7 @@ class API_Discovery_Admin {
 									type="checkbox" 
 									name="disable_wlw" 
 									value="1"
-									<?php checked( '1', $settings['disable_wlw'] ); ?>
+									<?php checked( '1', isset( $settings['disable_wlw'] ) ? $settings['disable_wlw'] : '0' ); ?>
 								/>
 								<?php esc_html_e( 'Removes support for obsolete Microsoft Windows Live Writer software.', 'api-discovery' ); ?>
 							</label>
@@ -215,7 +215,7 @@ class API_Discovery_Admin {
 									type="checkbox" 
 									name="disable_feed_links" 
 									value="1"
-									<?php checked( '1', $settings['disable_feed_links'] ); ?>
+									<?php checked( '1', isset( $settings['disable_feed_links'] ) ? $settings['disable_feed_links'] : '0' ); ?>
 								/>
 								<?php esc_html_e( 'Removes feed links from site header. Feeds still work if accessed directly.', 'api-discovery' ); ?>
 							</label>
@@ -232,7 +232,7 @@ class API_Discovery_Admin {
 									type="checkbox" 
 									name="disable_feeds" 
 									value="1"
-									<?php checked( '1', $settings['disable_feeds'] ); ?>
+									<?php checked( '1', isset( $settings['disable_feeds'] ) ? $settings['disable_feeds'] : '0' ); ?>
 								/>
 								<?php esc_html_e( 'Completely disables all RSS feeds. Use only if you don\'t need feeds at all.', 'api-discovery' ); ?>
 							</label>
@@ -249,7 +249,7 @@ class API_Discovery_Admin {
 									type="checkbox" 
 									name="disable_feed_generator" 
 									value="1"
-									<?php checked( '1', $settings['disable_feed_generator'] ); ?>
+									<?php checked( '1', isset( $settings['disable_feed_generator'] ) ? $settings['disable_feed_generator'] : '0' ); ?>
 								/>
 								<?php esc_html_e( 'Removes WordPress version information from RSS feeds.', 'api-discovery' ); ?>
 							</label>
@@ -270,7 +270,7 @@ class API_Discovery_Admin {
 									type="checkbox" 
 									name="cleanup_on_uninstall" 
 									value="1"
-									<?php checked( '1', $settings['cleanup_on_uninstall'] ); ?>
+									<?php checked( '1', isset( $settings['cleanup_on_uninstall'] ) ? $settings['cleanup_on_uninstall'] : '0' ); ?>
 								/>
 								<?php esc_html_e( 'Remove all plugin data when uninstalling. Leave unchecked to preserve settings.', 'api-discovery' ); ?>
 							</label>
@@ -296,7 +296,7 @@ class API_Discovery_Admin {
 		}
 
 		if ( ! isset( $_POST['api_discovery_nonce'] ) ||
-		     ! wp_verify_nonce( $_POST['api_discovery_nonce'], 'api_discovery_save_settings' ) ) {
+		     ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['api_discovery_nonce'] ) ), 'api_discovery_save_settings' ) ) {
 			wp_die( esc_html__( 'Security check failed', 'api-discovery' ) );
 		}
 
