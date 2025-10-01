@@ -1,0 +1,21 @@
+/**
+ * Admin styles for API & Discovery plugin
+ *
+ * @package API_Discovery
+ * @since   1.0.0
+ */
+
+/* Clean, minimal admin interface */
+.api-discovery-admin .form-table th {
+	width: 280px;
+	font-weight: 600;
+}
+
+.api-discovery-admin .form-table td label {
+	display: block;
+	margin: 0;
+}
+
+.api-discovery-admin .form-table input[type="checkbox"] {
+	margin-right: 8px;
+}
