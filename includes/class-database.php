@@ -45,34 +45,16 @@ class API_Discovery_Database {
 		$table_name      = $wpdb->prefix . 'api_discovery_settings';
 		$charset_collate = $wpdb->get_charset_collate();
 
-		// Use prepared statement for table creation (WordPress 6.2+)
-		$sql = $wpdb->prepare(
-			"CREATE TABLE IF NOT EXISTS %i (
-				id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-				setting_key varchar(191) NOT NULL,
-				setting_value longtext,
-				PRIMARY KEY (id),
-				UNIQUE KEY setting_key (setting_key)
-			) %s",
-			$table_name,
-			$charset_collate
-		);
+		$sql = "CREATE TABLE IF NOT EXISTS `{$table_name}` (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			setting_key varchar(191) NOT NULL,
+			setting_value longtext,
+			PRIMARY KEY (id),
+			UNIQUE KEY setting_key (setting_key)
+		) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql );
-
-		// Check if table was created successfully
-		$table_exists = $wpdb->get_var(
-			$wpdb->prepare(
-				"SHOW TABLES LIKE %s",
-				$table_name
-			)
-		);
-
-		if ( $table_name !== $table_exists ) {
-			error_log( 'API Discovery: Failed to create database table' );
-			return;
-		}
 
 		// Set default values
 		$defaults = array(
@@ -90,10 +72,7 @@ class API_Discovery_Database {
 		foreach ( $defaults as $key => $value ) {
 			$existing = $instance->get_setting( $key );
 			if ( false === $existing ) {
-				$result = $instance->save_setting( $key, $value );
-				if ( is_wp_error( $result ) ) {
-					error_log( 'API Discovery: Failed to set default for ' . $key . ' - ' . $result->get_error_message() );
-				}
+				$instance->save_setting( $key, $value );
 			}
 		}
 	}
@@ -125,13 +104,10 @@ class API_Discovery_Database {
 			return maybe_unserialize( $value );
 		}
 
-		$result = $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT setting_value FROM %i WHERE setting_key = %s",
-				$this->table_name,
-				$key
-			)
-		);
+		$result = $wpdb->get_var( $wpdb->prepare(
+			"SELECT setting_value FROM `{$this->table_name}` WHERE setting_key = %s",
+			$key
+		) );
 
 		if ( null === $result ) {
 			return $default;
@@ -154,15 +130,13 @@ class API_Discovery_Database {
 	public function save_setting( $key, $value ) {
 		global $wpdb;
 
-		// For WordPress 6.2+, we need to use prepared statement differently for replace
-		// Since replace() doesn't support %i, we use a direct query with prepare
-		$result = $wpdb->query(
-			$wpdb->prepare(
-				"REPLACE INTO %i (setting_key, setting_value) VALUES (%s, %s)",
-				$this->table_name,
-				$key,
-				maybe_serialize( $value )
-			)
+		$result = $wpdb->replace(
+			$this->table_name,
+			array(
+				'setting_key'   => $key,
+				'setting_value' => maybe_serialize( $value ),
+			),
+			array( '%s', '%s' )
 		);
 
 		if ( false === $result ) {
@@ -195,17 +169,9 @@ class API_Discovery_Database {
 		global $wpdb;
 
 		$results = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT setting_key, setting_value FROM %i",
-				$this->table_name
-			),
+			"SELECT setting_key, setting_value FROM `{$this->table_name}`",
 			ARRAY_A
 		);
-
-		if ( null === $results ) {
-			error_log( 'API Discovery: Failed to retrieve settings - ' . $wpdb->last_error );
-			return array();
-		}
 
 		$settings = array();
 		if ( $results ) {
@@ -227,16 +193,7 @@ class API_Discovery_Database {
 	public function cleanup() {
 		global $wpdb;
 
-		$result = $wpdb->query(
-			$wpdb->prepare(
-				"DROP TABLE IF EXISTS %i",
-				$this->table_name
-			)
-		);
-
-		if ( false === $result ) {
-			error_log( 'API Discovery: Failed to drop table during cleanup - ' . $wpdb->last_error );
-		}
+		$wpdb->query( "DROP TABLE IF EXISTS `{$this->table_name}`" );
 
 		delete_transient( 'api_discovery_settings_cache' );
 		wp_cache_flush();

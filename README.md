@@ -69,7 +69,7 @@ The plugin creates a custom database table `wp_api_discovery_settings` to store 
 
 - All settings are protected by WordPress nonces
 - Capability checks on all admin operations
-- Prepared statements for all database queries (WordPress 6.2+ %i placeholder)
+- Prepared statements for all database queries
 - Input sanitization and output escaping
 
 ## File Structure
@@ -92,7 +92,7 @@ api-discovery/
 
 ## Requirements
 
-- WordPress 6.2 or higher
+- WordPress 5.0 or higher
 - PHP 7.4 or higher
 - MySQL 5.0 or higher (MySQL 8.0+ recommended)
 
@@ -104,15 +104,6 @@ api-discovery/
 - Multisite compatible
 
 ## Changelog
-
-### 1.0.1
-- Fixed SQL injection vulnerabilities by using prepared statements with %i placeholder for table names
-- Fixed unsanitized nonce verification in admin form submission
-- Added error handling after database table creation
-- Improved default value handling for new settings after plugin updates
-- Changed transient cache name to be more unique (api_discovery_all_settings)
-- Added explicit isset() checks to prevent undefined array index notices
-- Updated comments for accuracy
 
 ### 1.0.0
 - Initial release

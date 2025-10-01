@@ -119,9 +119,7 @@ class API_Discovery_Admin {
 		$settings = $this->database->get_all_settings();
 		$message  = '';
 
-		// Sanitize GET parameter
-		$updated = isset( $_GET['updated'] ) ? sanitize_text_field( wp_unslash( $_GET['updated'] ) ) : '';
-		if ( '1' === $updated ) {
+		if ( isset( $_GET['updated'] ) && '1' === $_GET['updated'] ) {
 			$message = '<div class="notice notice-success is-dismissible"><p>' .
 			           esc_html__( 'Settings saved successfully.', 'api-discovery' ) .
 			           '</p></div>';
@@ -293,18 +291,12 @@ class API_Discovery_Admin {
 	 * @since 1.0.0
 	 */
 	private function save_settings() {
-		// Verify capability
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'Unauthorized access', 'api-discovery' ) );
 		}
 
-		// Verify nonce - SANITIZE INPUT
-		if ( ! isset( $_POST['api_discovery_nonce'] ) ) {
-			wp_die( esc_html__( 'Security check failed', 'api-discovery' ) );
-		}
-
-		$nonce = sanitize_text_field( wp_unslash( $_POST['api_discovery_nonce'] ) );
-		if ( ! wp_verify_nonce( $nonce, 'api_discovery_save_settings' ) ) {
+		if ( ! isset( $_POST['api_discovery_nonce'] ) ||
+		     ! wp_verify_nonce( $_POST['api_discovery_nonce'], 'api_discovery_save_settings' ) ) {
 			wp_die( esc_html__( 'Security check failed', 'api-discovery' ) );
 		}
 

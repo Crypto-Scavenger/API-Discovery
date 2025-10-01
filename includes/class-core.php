@@ -50,7 +50,7 @@ class API_Discovery_Core {
 	 * @since 1.0.0
 	 */
 	private function init_hooks() {
-		// Apply settings on init - must happen early to remove WordPress default actions/filters
+		// Load settings lazily only when needed
 		add_action( 'init', array( $this, 'apply_settings' ), 1 );
 	}
 
