@@ -3,7 +3,6 @@
  * Plugin Name: API & Discovery
  * Description: Control WordPress APIs and discovery features for enhanced security and privacy
  * Version: 1.0.0
- * Text Domain: api-discovery
  * Domain Path: /languages
  * License: GPL v2 or later
  */
